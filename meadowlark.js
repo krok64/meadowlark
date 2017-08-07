@@ -1,6 +1,11 @@
 var fortune = require('./lib/fortune.js');
 var express = require('express');
 
+var tours = [
+{ id: 0, name: 'Река Худ', price: 99.99 },
+{ id: 1, name: 'Орегон Коуст', price: 149.95 },
+];
+
 var app = express();
 // Установка механизма представления handlebars
 var handlebars = require('express-handlebars').create({ defaultLayout:'main' });
@@ -13,6 +18,12 @@ app.use(express.static(__dirname + '/public'));
 
 app.use(function(req, res, next){
     res.locals.showTests = app.get('env') !== 'production' && req.query.test === '1';
+    next();
+});
+
+app.use(function(req, res, next){
+    if(!res.locals.partials) res.locals.partials = {};
+    res.locals.partials.weatherContext = getWeatherData();
     next();
 });
 
@@ -60,3 +71,31 @@ app.listen(app.get('port'), function(){
     console.log( 'Express запущен на http://localhost:' +
         app.get('port') + '; нажмите Ctrl+C для завершения.' );
 });
+
+function getWeatherData(){
+    return {
+    locations: [
+    {
+    name: 'Портленд',
+    forecastUrl: 'http://www.wunderground.com/US/OR/Portland.html',
+    iconUrl: 'http://icons-ak.wxug.com/i/c/k/cloudy.gif',
+    weather: 'Сплошная облачность ',
+    temp: '54.1 F (12.3 C)',
+    },
+    {
+    name: 'Бенд',
+    forecastUrl: 'http://www.wunderground.com/US/OR/Bend.html',
+    iconUrl: 'http://icons-ak.wxug.com/i/c/k/partlycloudy.gif',
+    weather: 'Малооблачно',
+    temp: '55.0 F (12.8 C)',
+    },
+    {
+    name: 'Манзанита',
+    forecastUrl: 'http://www.wunderground.com/US/OR/Manzanita.html',
+    iconUrl: 'http://icons-ak.wxug.com/i/c/k/rain.gif',
+    weather: 'Небольшой дождь',
+    temp: '55.0 F (12.8 C)',
+    },
+    ],
+    };
+}
