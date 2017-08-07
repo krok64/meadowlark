@@ -1,3 +1,4 @@
+var fortune = require('./lib/fortune.js');
 var express = require('express');
 
 var app = express();
@@ -7,28 +8,54 @@ app.engine('handlebars', handlebars.engine);
 app.set('view engine', 'handlebars');
 
 app.set('port', process.env.PORT || 3000);
-// пользовательская страница 404
-app.get('/', function(req, res){
-    res.type('text/plain');
-    res.send('Meadowlark Travel');
-});
-app.get('/about', function(req, res){
-    res.type('text/plain');
-    res.send('О Meadowlark Travel');
-});
-// пользовательская страница 404
+
+app.use(express.static(__dirname + '/public'));
+
 app.use(function(req, res, next){
-    res.type('text/plain');
-    res.status(404);
-    res.send('404 — Не найдено');
+    res.locals.showTests = app.get('env') !== 'production' && req.query.test === '1';
+    next();
 });
-// пользовательская страница 500
+
+// пользовательская страница /
+app.get('/', function(req, res) {
+    res.render('home');
+});
+
+app.get('/headers', function(req,res){
+    res.set('Content-Type','text/plain');
+    var s = '';
+    for(var name in req.headers)
+    s += name + ': ' + req.headers[name] + '\n';
+    res.send(s);
+});
+
+app.get('/about', function(req, res){
+    res.render('about', { fortune: fortune.getFortune(),
+        pageTestScript: '/qa/tests-about.js'
+    } );
+});
+
+app.get('/tours/hood-river', function(req, res){
+    res.render('tours/hood-river');
+});
+
+app.get('/tours/request-group-rate', function(req, res){
+    res.render('tours/request-group-rate');
+});
+
+// Обобщенный обработчик 404 (промежуточное ПО)
+app.use(function(req, res, next){
+    res.status(404);
+    res.render('404');
+});
+
+// Обработчик ошибки 500 (промежуточное ПО)
 app.use(function(err, req, res, next){
     console.error(err.stack);
-    res.type('text/plain');
     res.status(500);
-    res.send('500 — Ошибка сервера');
+    res.render('500');
 });
+
 app.listen(app.get('port'), function(){
     console.log( 'Express запущен на http://localhost:' +
         app.get('port') + '; нажмите Ctrl+C для завершения.' );
