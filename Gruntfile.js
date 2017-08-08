@@ -10,19 +10,18 @@ module.exports = function(grunt){
 
 // Настраиваем плагины
 grunt.initConfig({
-cafemocha: {
-	all: { src: 'qa/tests-*.js', options: { ui: 'tdd' }, }
-},
+	cafemocha: {
+		all: { src: 'qa/tests-*.js', options: { ui: 'tdd' }, }
+	},
 
-jshint: {
-app: ['meadowlark.js', 'public/js/**/*.js','lib/**/*.js'],
-qa: ['Gruntfile.js', 'public/qa/**/*.js', 'qa/**/*.js'],
-},
+	jshint: {
+		app: ['meadowlark.js', 'public/js/**/*.js','lib/**/*.js'],
+		qa: ['Gruntfile.js', 'public/qa/**/*.js', 'qa/**/*.js'],
+	},
 
-exec: {
-linkchecker:
-{ cmd: 'linkchecker http://localhost:3000' }
-},
+	exec: {
+		linkchecker: { cmd: 'linkcheck http://localhost:3000' }
+	},
 });
 // Регистрируем задания
 grunt.registerTask('default', ['cafemocha','jshint','exec']);
