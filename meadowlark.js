@@ -1,5 +1,7 @@
 var fortune = require('./lib/fortune.js');
 var express = require('express');
+var formidable = require('formidable' );
+var jqupload = require('jquery-file-upload-middleware' );
 
 var tours = [
 { id: 0, name: 'Река Худ', price: 99.99 },
@@ -26,6 +28,55 @@ app.set('port', process.env.PORT || 3000);
 
 app.use(express.static(__dirname + '/public'));
 
+app.use('/upload', function(req, res, next){
+    var now = Date.now();
+    jqupload. fileHandler({
+        uploadDir: function(){
+            return __dirname + '/public/uploads/' + now;
+        },
+        uploadUrl: function(){
+            return '/uploads/' + now;
+        },
+    })(req, res, next);
+});
+
+app.use(require('body-parser').urlencoded({ extended: true }));
+
+app.get('/contest/vacation-photo', function(req, res){
+    var now = new Date();
+    res.render('contest/vacation-photo',{
+        year: now.getFullYear(), month: now.getMonth()
+    });
+});
+
+app.post('/contest/vacation-photo/:year/:month', function(req, res){
+    var form = new formidable.IncomingForm();
+    form.parse(req, function(err, fields, files){
+        if(err) return res.redirect(303, '/error' );
+        console.log('received fields:' );
+        console.log(fields);
+        console.log('received files:' );
+        console.log(files);
+        res.redirect(303, '/thank-you' );
+    });
+});
+
+app.get('/newsletter', function(req, res){
+    // мы изучим CSRF позже... сейчас мы лишь
+    // заполняем фиктивное значение
+    res.render('newsletter', { csrf: 'CSRF token goes here' });
+});
+
+app.post('/process', function(req, res){
+    if(req.xhr || req.accepts('json,html' )==='json' ){
+        // если здесь есть ошибка, то мы должны отправить { error: 'описание ошибки' }
+        res.send({ success: true });
+    } else {
+        // если бы была ошибка, нам нужно было бы перенаправлять на страницу ошибки
+        res.redirect(303, '/thank-you' );
+    }
+});
+
 app.use(function(req, res, next){
     res.locals.showTests = app.get('env') !== 'production' && req.query.test === '1';
     next();
@@ -40,6 +91,19 @@ app.use(function(req, res, next){
 // пользовательская страница /
 app.get('/', function(req, res) {
     res.render('home');
+});
+
+app.get('/nursery-rhyme', function(req, res){
+res.render('nursery-rhyme');
+});
+
+app.get('/data/nursery-rhyme', function(req, res){
+res.json({
+animal: 'бельчонок',
+bodyPart: 'хвост',
+adjective: 'пушистый',
+noun: 'черт',
+});
 });
 
 app.get('/headers', function(req,res){

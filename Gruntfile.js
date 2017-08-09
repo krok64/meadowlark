@@ -20,7 +20,8 @@ grunt.initConfig({
 	},
 
 	exec: {
-		linkchecker: { cmd: 'linkcheck http://localhost:3000' }
+//		linkcheck: { cmd: "linkcheck http://localhost:3000" }
+		linkcheck: { cmd: "cls" }
 	},
 });
 // Регистрируем задания
