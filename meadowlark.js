@@ -2,6 +2,9 @@ var fortune = require('./lib/fortune.js');
 var express = require('express');
 var formidable = require('formidable' );
 var jqupload = require('jquery-file-upload-middleware' );
+var credentials = require('./credentials.js');
+var cartValidation = require('./lib/cartValidation.js');
+
 
 var tours = [
 { id: 0, name: 'Река Худ', price: 99.99 },
@@ -21,16 +24,41 @@ var handlebars = require('express-handlebars').create({
     }
 });
 
+switch(app.get('env')){
+    case 'development':
+        // сжатое многоцветное журналирование для
+        // разработки
+        app.use(require('morgan')('dev'));
+        break;
+    case 'production':
+        // модуль 'express-logger' поддерживает ежедневное
+        // чередование файлов журналов
+        app.use(require('express-logger')({
+            path: __dirname + '/log/requests.log'
+        }));
+    break;
+}
+
 app.engine('handlebars', handlebars.engine);
 app.set('view engine', 'handlebars');
 
 app.set('port', process.env.PORT || 3000);
 
+app.use(require('cookie-parser')(credentials.cookieSecret));
+app.use(require('express-session')({
+    resave: false,
+    saveUninitialized: false,
+    secret: credentials.cookieSecret,
+}));
+
 app.use(express.static(__dirname + '/public'));
+
+app.use(cartValidation.checkWaivers);
+app.use(cartValidation.checkGuestCounts);
 
 app.use('/upload', function(req, res, next){
     var now = Date.now();
-    jqupload. fileHandler({
+    jqupload.fileHandler({
         uploadDir: function(){
             return __dirname + '/public/uploads/' + now;
         },
@@ -41,6 +69,14 @@ app.use('/upload', function(req, res, next){
 });
 
 app.use(require('body-parser').urlencoded({ extended: true }));
+
+app.use(function(req, res, next){
+    // Если имеется экстренное сообщение,
+    // переместим его в контекст, а затем удалим
+    res.locals.flash = req.session.flash;
+    delete req.session.flash;
+    next();
+});
 
 app.get('/contest/vacation-photo', function(req, res){
     var now = new Date();
@@ -90,6 +126,14 @@ app.use(function(req, res, next){
 
 // пользовательская страница /
 app.get('/', function(req, res) {
+    res.cookie('monster', 'nom nom');
+    res.cookie('signed_monster', 'nom nom', { signed: true });
+    var monster = req.cookies.monster;
+    var signedMonster = req.signedCookies.signed_monster;
+
+    req.session.userName = 'Anonymous';
+    var colorScheme = req.session.colorScheme || 'dark';
+
     res.render('home');
 });
 
@@ -145,10 +189,23 @@ app.use(function(err, req, res, next){
     res.render('500');
 });
 
-app.listen(app.get('port'), function(){
-    console.log( 'Express запущен на http://localhost:' +
-        app.get('port') + '; нажмите Ctrl+C для завершения.' );
-});
+function startServer() {
+    app.listen(app.get('port'), function() {
+        console.log( 'Express запущен в режиме ' + app.get('env') +
+        ' на http://localhost:' + app.get('port') +     '; нажмите Ctrl+C для завершения.' );
+    });
+}
+
+if(require.main === module){
+// Приложение запускается непосредственно;
+// запускаем сервер приложения
+startServer();
+} else {
+// Приложение импортируется как модуль
+// посредством "require":
+// экспортируем функцию для создания сервера
+module.exports = startServer;
+}
 
 function getWeatherData(){
     return {
