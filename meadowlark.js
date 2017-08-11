@@ -51,6 +51,12 @@ app.use(require('express-session')({
     secret: credentials.cookieSecret,
 }));
 
+app.use(function(req,res,next){
+    var cluster = require('cluster');
+    if(cluster.isWorker) console.log('Исполнитель %d получил запрос', cluster.worker.id);
+    next();
+});
+
 app.use(express.static(__dirname + '/public'));
 
 app.use(cartValidation.checkWaivers);
@@ -76,6 +82,16 @@ app.use(function(req, res, next){
     res.locals.flash = req.session.flash;
     delete req.session.flash;
     next();
+});
+
+app.get('/fail', function(req, res){
+    throw new Error('Нет!');
+});
+
+app.get('/epic-fail', function(req, res){
+    process.nextTick(function(){
+        throw new Error('Бабах!');
+    });
 });
 
 app.get('/contest/vacation-photo', function(req, res){
@@ -197,14 +213,14 @@ function startServer() {
 }
 
 if(require.main === module){
-// Приложение запускается непосредственно;
-// запускаем сервер приложения
-startServer();
-} else {
-// Приложение импортируется как модуль
-// посредством "require":
-// экспортируем функцию для создания сервера
-module.exports = startServer;
+    // Приложение запускается непосредственно;
+    // запускаем сервер приложения
+    startServer();
+    } else {
+    // Приложение импортируется как модуль
+    // посредством "require":
+    // экспортируем функцию для создания сервера
+    module.exports = startServer;
 }
 
 function getWeatherData(){
